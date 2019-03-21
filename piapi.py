@@ -22,3 +22,12 @@ def records(record):
             return "Record " + record
         else:
             return "List of records."
+
+
+@app.route("/authentication/", defaults={"uuid": None}, methods=["POST"])
+@app.route("/authentication/<string:uuid>", methods=["GET"])
+def authentication(uuid):
+    if request.method == "POST":
+        return "UUID" + uuid + "Recorded"
+    elif request.method == "GET":
+        return uuid
