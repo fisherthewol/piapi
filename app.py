@@ -1,7 +1,36 @@
 from flask import Flask, request
+import peewee
+import os
+from playhouse.flask_utils import FlaskDB
+
+
+# Database definitions.
+db_url = ("postgresql://restapi:"
+          + os.envrion.get("db_passwd")
+          + "@localhost:5432/"
+          + os.environ.get("database"))
 app = Flask(__name__)
+db_wrapper = FlaskDB(app, db_url)
+peewee_db = db_wrapper.database
 
 
+class RestClient(db_wrapper.Model):
+    uuid = peewee.UUIDField()
+    authkey = peewee.CharField()
+
+
+class Sensor(db_wrapper.Model):
+    client = peewee.ForeignKeyField(RestClient, backref="sensors")
+    name = peewee.FixedCharField(max_length=15)
+
+
+class Reading(db_wrapper.Model):
+    sensor = peewee.ForeignKeyField(Sensor, backref="readings")
+    timestamp = peewee.DateTimeField()
+    temperature = peewee.FloatField()
+
+
+# Route definitions.
 @app.route("/days/<string:day>",
            defaults={"day": None},
            methods=["GET"])
