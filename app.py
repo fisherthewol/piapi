@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import peewee
 import os
 from playhouse.flask_utils import FlaskDB
-from random import randint
+import secrets
 
 
 # Database definitions.
@@ -14,7 +14,8 @@ peewee_db = db_wrapper.database
 
 
 class RestClient(db_wrapper.Model):
-    uuid = peewee.UUIDField()
+    # uuid = peewee.UUIDField()
+    uuid = peewee.CharField()
     authkey = peewee.CharField()
 
 
@@ -53,7 +54,6 @@ def records(record):
 
 
 @app.route("/authentication/<string:uuid>",
-           defaults={"uuid": None},
            methods=["GET", "POST"])
 def authentication(uuid):
     """Allow a client to request/recieve an authentication key."""
@@ -63,7 +63,7 @@ def authentication(uuid):
             if len(query) > 0:
                 return jsonify("UUID already exits."), 409
             else:
-                authk = "testauthkey" + randint(1, 155)  # TODO: Replace with os.secret.
+                authk = secrets.token_urlsafe()
                 x = RestClient(uuid=uuid, authkey=authk)
                 x.save()
                 return jsonify({"msg": "RestClient saved.",
@@ -74,4 +74,4 @@ def authentication(uuid):
             if len(query) > 0:
                 return jsonify({"authkey": query[0].authkey})
             else:
-                return jsonify({"msg": "UUID not prior registration."}), 404
+                return jsonify({"msg": "UUID not registered."}), 404
