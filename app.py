@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify
-import peewee
 import os
-from playhouse.flask_utils import FlaskDB
 import secrets
+import peewee
+from flask import Flask, json, request
+from playhouse.flask_utils import FlaskDB
 
 
 # Database definitions.
@@ -36,21 +36,22 @@ def days(day):
     else:
         return "List of days."
 
-
-@app.route("/records/<string:record>",
-           defaults={"record": None},
+# TODO: Need to make this so we can post with just /readings
+@app.route("/readings", methods=["GET", "POST"])
+@app.route("/readings/<string:reading>",
+           defaults={"reading": None},
            methods=["GET", "POST"])
-def records(record):
-    """POST: Save record to database.
-    GET: Return a list of records, or details of <record>."""
+def readings(reading):
+    """POST: Save reading to database.
+    GET: Return a list of readings, or details of <reading>."""
     if request.method == "POST":
-        # Parse String into JSON.
-        return "Record saved."
+        js_data = request.get_json()
+        return json.jsonify(js_data)
     elif request.method == "GET":
-        if record:
-            return "Record " + record
+        if reading:
+            return "reading " + reading
         else:
-            return "List of records."
+            return "List of readings."
 
 
 @app.route("/authentication/<string:uuid>",
@@ -61,17 +62,17 @@ def authentication(uuid):
         with peewee_db.atomic():
             query = RestClient.select().where(RestClient.uuid == uuid)
             if len(query) > 0:
-                return jsonify("UUID already exits."), 409
+                return json.jsonify("UUID already exits."), 409
             else:
                 authk = secrets.token_urlsafe()
                 x = RestClient(uuid=uuid, authkey=authk)
                 x.save()
-                return jsonify({"msg": "RestClient saved.",
-                                "url": "/authentication/" + uuid}), 201
+                return json.jsonify({"msg": "RestClient saved.",
+                                     "url": "/authentication/" + uuid}), 201
     elif request.method == "GET":
         with peewee_db.atomic():
             query = RestClient.select().where(RestClient.uuid == uuid)
             if len(query) > 0:
-                return jsonify({"authkey": query[0].authkey})
+                return json.jsonify({"authkey": query[0].authkey})
             else:
-                return jsonify({"msg": "UUID not registered."}), 404
+                return json.jsonify({"msg": "UUID not registered."}), 404
