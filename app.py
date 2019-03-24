@@ -20,8 +20,8 @@ class RestClient(db_wrapper.Model):
 
 
 class Reading(db_wrapper.Model):
-    sensor = peewee.FixedCharField(max_length=15)
     timestamp = peewee.DateTimeField()
+    sensor = peewee.FixedCharField(max_length=15)
     temperature = peewee.FloatField()
 
 
@@ -46,10 +46,15 @@ def readings(reading):
     GET: Return a list of readings, or details of <reading>."""
     if request.method == "POST":
         js_data = request.get_json()
-        return json.jsonify(js_data)
+        x = Reading(sensor=js_data["sensor"],
+                    timestamp=js_data["timestamp"],
+                    temperature=float(js_data["temperature"]))
+        ind = x.save()
+        return json.jsonify({"msg": "Reading saved.",
+                             "url": "/reading/" + str(ind)}), 201
     elif request.method == "GET":
         if reading:
-            return "reading " + reading
+            query = Reading.select().where(Reading.id == reading)
         else:
             return "List of readings."
 
