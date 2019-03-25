@@ -43,7 +43,7 @@ def days(day):
            methods=["GET", "POST"])
 def readings(reading):
     """POST: Save reading to database.
-    GET: Return a list of readings, or details of <reading>."""
+    GET: Return a list of latest 100 readings, or details of <reading>."""
     if request.method == "POST":
         js_data = request.get_json()
         x = Reading(sensor=js_data["sensor"],
@@ -55,8 +55,16 @@ def readings(reading):
     elif request.method == "GET":
         if reading:
             query = Reading.select().where(Reading.id == reading)
+            if len(query) > 0:
+                return json.jsonify({"timestamp": query[0].timestamp,
+                                     "sensor": query[0].sensor,
+                                     "temperature": query[0].temperature})
+            else:
+                return json.jsonify({"msg": "Reading does not exist."}), 404
         else:
-            return "List of readings."
+            query = Reading.select(Reading.id).order_by(Reading.id.desc()).limit(100)
+            d = [(reading.id, reading.timestamp) for reading in query]
+            return json.jsonify(d)
 
 
 @app.route("/authentication/<string:uuid>",
@@ -67,7 +75,7 @@ def authentication(uuid):
         with peewee_db.atomic():
             query = RestClient.select().where(RestClient.uuid == uuid)
             if len(query) > 0:
-                return json.jsonify("UUID already exits."), 409
+                return json.jsonify({"msg": "UUID already exits."}), 409
             else:
                 authk = secrets.token_urlsafe()
                 x = RestClient(uuid=uuid, authkey=authk)
