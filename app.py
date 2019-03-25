@@ -56,7 +56,7 @@ def readings(reading):
                 return json.jsonify({"msg": "Reading does not exist."}), 404
         else:
             with peewee_db.atomic():
-                d = [(reading.id, reading.timestamp) for reading in Reading.select(Reading.id).order_by(Reading.id.desc()).limit(100)]
+                d = [reading.id for reading in Reading.select(Reading.id).order_by(Reading.id.desc()).limit(100)]
             return json.jsonify(d)
 
 
