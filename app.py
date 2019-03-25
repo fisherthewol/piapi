@@ -37,24 +37,26 @@ def readings(reading):
     GET: Return a list of latest 100 readings, or details of <reading>."""
     if request.method == "POST":
         js_data = request.get_json()
-        x = Reading(sensor=js_data["sensor"],
-                    timestamp=js_data["timestamp"],
-                    temperature=float(js_data["temperature"]))
-        ind = x.save()
+        with peewee_db.atomic():
+            x = Reading(sensor=js_data["sensor"],
+                        timestamp=js_data["timestamp"],
+                        temperature=float(js_data["temperature"]))
+            ind = x.save()
         return json.jsonify({"msg": "Reading saved.",
                              "url": "/reading/" + str(ind)}), 201
     elif request.method == "GET":
         if reading:
-            query = Reading.select().where(Reading.id == reading)
-            if len(query) > 0:
-                return json.jsonify({"timestamp": query[0].timestamp,
-                                     "sensor": query[0].sensor,
-                                     "temperature": query[0].temperature})
+            with peewee_db.atomic():
+                query = Reading.get_or_none(Reading.id == reading)
+            if query:
+                return json.jsonify({"timestamp": query.timestamp,
+                                     "sensor": query.sensor,
+                                     "temperature": query.temperature})
             else:
                 return json.jsonify({"msg": "Reading does not exist."}), 404
         else:
-            query = Reading.select(Reading.id).order_by(Reading.id.desc()).limit(100)
-            d = [(reading.id, reading.timestamp) for reading in query]
+            with peewee_db.atomic():
+                d = [(reading.id, reading.timestamp) for reading in Reading.select(Reading.id).order_by(Reading.id.desc()).limit(100)]
             return json.jsonify(d)
 
 
@@ -64,8 +66,7 @@ def authentication(uuid):
     """Allow a client to request/recieve an authentication key."""
     if request.method == "POST":
         with peewee_db.atomic():
-            query = RestClient.select().where(RestClient.uuid == uuid)
-            if len(query) > 0:
+            if RestClient.get_or_none(RestClient.uuid == uuid):
                 return json.jsonify({"msg": "UUID already exits."}), 409
             else:
                 authk = secrets.token_urlsafe()
