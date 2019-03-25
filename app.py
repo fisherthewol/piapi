@@ -30,9 +30,8 @@ class Reading(db_wrapper.Model):
 # TODO: Need to make this so we can post with just /readings
 @app.route("/readings", methods=["GET", "POST"])
 @app.route("/readings/<string:reading>",
-           defaults={"reading": None},
            methods=["GET", "POST"])
-def readings(reading):
+def readings(reading=None):
     """POST: Save reading to database.
     GET: Return a list of latest 100 readings, or details of <reading>."""
     if request.method == "POST":
@@ -41,13 +40,13 @@ def readings(reading):
             x = Reading(sensor=js_data["sensor"],
                         timestamp=js_data["timestamp"],
                         temperature=float(js_data["temperature"]))
-            ind = x.save()
+            x.save()
         return json.jsonify({"msg": "Reading saved.",
-                             "url": "/reading/" + str(ind)}), 201
+                             "url": "/readings/" + str(x.id)}), 201
     elif request.method == "GET":
         if reading:
             with peewee_db.atomic():
-                query = Reading.get_or_none(Reading.id == reading)
+                query = Reading.get_or_none(Reading.id == int(reading))
             if query:
                 return json.jsonify({"timestamp": query.timestamp,
                                      "sensor": query.sensor,
