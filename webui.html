@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>thermopiapi</title>
+</head>
+<body>
+    {% for reading in readings %}
+    <p>Sensor: {{reading.sensor.name}}</p><br>
+    <p>Time: {{reading.timestamp}}</p><br>
+    <p>Temperature: {{reading.temperature}}°C</p><br>
+    {% endfor %}
+</body>
+</html>

@@ -1,7 +1,7 @@
 import os
 import secrets
 import peewee
-from flask import Flask, json, request
+from flask import Flask, json, request, render_template
 from playhouse.flask_utils import FlaskDB
 
 
@@ -24,8 +24,8 @@ class Sensor(db_wrapper.Model):
 
 class Reading(db_wrapper.Model):
     timestamp = peewee.DateTimeField()
-    # sensor = peewee.ForeignKeyField(Sensor, backref="readings")
-    sensor = peewee.FixedCharField(max_length=15)
+    sensor = peewee.ForeignKeyField(Sensor, backref="readings")
+    # sensor = peewee.FixedCharField(max_length=15)
     temperature = peewee.FloatField()
 
 
@@ -39,9 +39,11 @@ def readings(reading=None):
     if request.method == "POST":
         js_data = request.get_json()
         with peewee_db.atomic():
-            x = Reading(sensor=js_data["sensor"],
-                        timestamp=js_data["timestamp"],
-                        temperature=float(js_data["temperature"]))
+            sensor = Sensor.get_or_none(Sensor.name == js_data["sensor"])
+            if sensor:
+                x = Reading(sensor=sensor,
+                            timestamp=js_data["timestamp"],
+                            temperature=float(js_data["temperature"]))
             x.save()
         return json.jsonify({"msg": "Reading saved.",
                              "url": "/readings/" + str(x.id)}), 201
@@ -110,3 +112,15 @@ def authentication(uuid):
                 return json.jsonify({"authkey": query[0].authkey})
             else:
                 return json.jsonify({"msg": "UUID not registered."}), 404
+
+
+@app.route("/")
+def index():
+    read = []
+    with peewee_db.atomic():
+        q = Sensor.select()
+    for sensor in q:
+        with peewee_db.atomic():
+            q = Reading.get_or_none(Reading.sensor == sensor).order_by(Reading.timestamp.desc())
+        read.append(q)
+    return render_template("webui.html", readings=read)
