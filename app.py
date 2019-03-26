@@ -17,8 +17,14 @@ class RestClient(db_wrapper.Model):
     authkey = peewee.CharField()
 
 
+class Sensor(db_wrapper.Model):
+    serial = peewee.FixedCharField(max_length=15)
+    name = peewee.CharField()
+
+
 class Reading(db_wrapper.Model):
     timestamp = peewee.DateTimeField()
+    # sensor = peewee.ForeignKeyField(Sensor, backref="readings")
     sensor = peewee.FixedCharField(max_length=15)
     temperature = peewee.FloatField()
 
@@ -26,7 +32,7 @@ class Reading(db_wrapper.Model):
 # Route definitions.
 @app.route("/readings", methods=["GET", "POST"])
 @app.route("/readings/<string:reading>",
-           methods=["GET", "POST"])
+           methods=["GET"])
 def readings(reading=None):
     """POST: Save reading to database.
     GET: Return a list of latest 100 readings, or details of <reading>."""
@@ -52,6 +58,34 @@ def readings(reading=None):
         else:
             with peewee_db.atomic():
                 d = [reading.id for reading in Reading.select(Reading.id).order_by(Reading.id.desc()).limit(100)]
+            return json.jsonify(d)
+
+
+@app.route("/sensors", methods=["GET"])
+@app.route("/sensors/<string:sensor>",
+           methods=["GET", "POST"])
+def sensors(sensor=None):
+    """POST: Add a sensor. GET: Retrieve a sensor or list of sensors."""
+    if request.method == "POST":
+        js_data = request.get_json()
+        with peewee_db.atomic():
+            x = Sensor(serial=js_data["serial"],
+                       name=js_data["name"])
+            x.save()
+        return json.jsonify({"msg": "Sensor saved.",
+                             "url": "/sensors/" + str(x.id)}), 201
+    elif request.method == "GET":
+        if sensor:
+            with peewee_db.atomic():
+                query = Sensor.get_or_none(Sensor.name == sensor)
+                if query:
+                    return json.jsonify({"serial": query.serial,
+                                         "name": query.name})
+                else:
+                    return json.jsonify({"msg": "Sensor does not exist."}), 404
+        else:
+            with peewee_db.atomic():
+                d = [(s.serial, s.name) for s in Sensor.select().order_by(Reading.id.desc()).limit(100)]
             return json.jsonify(d)
 
 
