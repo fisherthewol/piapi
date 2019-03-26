@@ -7,16 +7,13 @@ from playhouse.flask_utils import FlaskDB
 
 # Database definitions.
 db_url = os.environ.get("db_url")
-# "postgresql://restapi:" + os.envrion.get("db_passwd") +
-# "@localhost:5432/" + os.environ.get("database")
 app = Flask(__name__)
 db_wrapper = FlaskDB(app, db_url)
 peewee_db = db_wrapper.database
 
 
 class RestClient(db_wrapper.Model):
-    # uuid = peewee.UUIDField()
-    uuid = peewee.CharField()
+    uuid = peewee.UUIDField()
     authkey = peewee.CharField()
 
 
@@ -27,7 +24,6 @@ class Reading(db_wrapper.Model):
 
 
 # Route definitions.
-# TODO: Need to make this so we can post with just /readings
 @app.route("/readings", methods=["GET", "POST"])
 @app.route("/readings/<string:reading>",
            methods=["GET", "POST"])
