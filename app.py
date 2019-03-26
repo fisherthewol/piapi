@@ -61,9 +61,9 @@ def readings(reading=None):
             return json.jsonify(d)
 
 
-@app.route("/sensors", methods=["GET"])
+@app.route("/sensors", methods=["GET", "POST"])
 @app.route("/sensors/<string:sensor>",
-           methods=["GET", "POST"])
+           methods=["GET"])
 def sensors(sensor=None):
     """POST: Add a sensor. GET: Retrieve a sensor or list of sensors."""
     if request.method == "POST":
@@ -85,7 +85,7 @@ def sensors(sensor=None):
                     return json.jsonify({"msg": "Sensor does not exist."}), 404
         else:
             with peewee_db.atomic():
-                d = [(s.serial, s.name) for s in Sensor.select().order_by(Reading.id.desc()).limit(100)]
+                d = [{"serial": s.serial, "name": s.name} for s in Sensor.select().order_by(Sensor.id.desc()).limit(100)]
             return json.jsonify(d)
 
 
