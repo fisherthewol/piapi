@@ -20,6 +20,7 @@ class RestClient(db_wrapper.Model):
 class Sensor(db_wrapper.Model):
     serial = peewee.FixedCharField(max_length=15)
     name = peewee.CharField()
+    connected = peewee.BooleanField()
 
 
 class Reading(db_wrapper.Model):
@@ -65,14 +66,15 @@ def readings(reading=None):
 
 @app.route("/sensors", methods=["GET", "POST"])
 @app.route("/sensors/<string:sensor>",
-           methods=["GET"])
+           methods=["GET", "PUT"])
 def sensors(sensor=None):
     """POST: Add a sensor. GET: Retrieve a sensor or list of sensors."""
     if request.method == "POST":
         js_data = request.get_json()
         with peewee_db.atomic():
             x = Sensor(serial=js_data["serial"],
-                       name=js_data["name"])
+                       name=js_data["name"],
+                       connected=js_data["connected"])
             x.save()
         return json.jsonify({"msg": "Sensor saved.",
                              "url": "/sensors/" + str(x.id)}), 201
@@ -89,6 +91,22 @@ def sensors(sensor=None):
             with peewee_db.atomic():
                 d = [{"serial": s.serial, "name": s.name} for s in Sensor.select().order_by(Sensor.id.desc()).limit(100)]
             return json.jsonify(d)
+    elif request.method == "PUT":
+        if sensor:
+            js_data = request.get_json()
+            with peewee_db.atomic():
+                x = Sensor.get_or_none(Sensor.name == js_data["name"])
+            if x:
+                x.serial = js_data["serial"]
+                x.name = js_data["name"]
+                x.connected = js_data["connected"]
+                x.save()
+                return json.jsonify({"msg": "Sensor updated.",
+                                     "url": "/sensors/" + str(x.id)}), 200
+            else:
+                return json.jsonify({"msg": "Sensor does not exist."}), 404
+        else:
+            return json.jsonify({"msg": "Must provide sensor."}), 404
 
 
 @app.route("/authentication/<string:uuid>",
@@ -121,6 +139,6 @@ def index():
         q = Sensor.select()
     for sensor in q:
         with peewee_db.atomic():
-            q = Reading.get_or_none(Reading.sensor == sensor).order_by(Reading.timestamp.desc())
+            q = Reading.get_or_none(Reading.sensor == sensor)
         read.append(q)
     return render_template("webui.html", readings=read)
