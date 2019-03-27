@@ -26,7 +26,6 @@ class Sensor(db_wrapper.Model):
 class Reading(db_wrapper.Model):
     timestamp = peewee.DateTimeField()
     sensor = peewee.ForeignKeyField(Sensor, backref="readings")
-    # sensor = peewee.FixedCharField(max_length=15)
     temperature = peewee.FloatField()
 
 
@@ -40,12 +39,14 @@ def readings(reading=None):
     if request.method == "POST":
         js_data = request.get_json()
         with peewee_db.atomic():
-            sensor = Sensor.get_or_none(Sensor.name == js_data["sensor"])
+            sensor = Sensor.get_or_none((Sensor.name == js_data["sensor"]) | (Sensor.serial == js_data["sensor"]))
             if sensor:
                 x = Reading(sensor=sensor,
                             timestamp=js_data["timestamp"],
                             temperature=float(js_data["temperature"]))
-            x.save()
+                x.save()
+            else:
+                return json.jsonify({"msg": "Sensor does not exist."}), 400
         return json.jsonify({"msg": "Reading saved.",
                              "url": "/readings/" + str(x.id)}), 201
     elif request.method == "GET":
@@ -136,9 +137,10 @@ def authentication(uuid):
 def index():
     read = []
     with peewee_db.atomic():
-        q = Sensor.select()
+        q = Sensor.select().where(Sensor.connected == True)
     for sensor in q:
         with peewee_db.atomic():
-            q = Reading.get_or_none(Reading.sensor == sensor)
-        read.append(q)
+            q = Reading.select().where(Reading.sensor == sensor).order_by(Reading.timestamp.desc())
+        if len(q) > 0:
+            read.append(q[0])
     return render_template("webui.html", readings=read)

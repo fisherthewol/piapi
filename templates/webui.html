@@ -6,9 +6,10 @@
 </head>
 <body>
     {% for reading in readings %}
-    <p>Sensor: {{reading.sensor.name}}</p>
-    <p>Time: {{reading.timestamp}}</p>
-    <p>Temperature: {{reading.temperature}}°C</p>
+    <p>Sensor: {{reading.sensor.name}}<br>
+    Time: {{reading.timestamp}}<br>
+    Temperature: {{reading.temperature}}°C</p>
+    <hr>
     {% endfor %}
 </body>
 </html>
