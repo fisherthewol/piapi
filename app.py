@@ -73,6 +73,8 @@ def sensors(sensor=None):
     if request.method == "POST":
         js_data = request.get_json()
         with peewee_db.atomic():
+            if Sensor.get_or_none((Sensor.name == js_data["sensor"]) | (Sensor.serial == js_data["sensor"])):
+                return json.jsonify({"msg": "Sensor already exists; try using PUT"}), 409
             x = Sensor(serial=js_data["serial"],
                        name=js_data["name"],
                        connected=js_data["connected"])
