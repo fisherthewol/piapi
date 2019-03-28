@@ -73,7 +73,7 @@ def sensors(sensor=None):
     if request.method == "POST":
         js_data = request.get_json()
         with peewee_db.atomic():
-            if Sensor.get_or_none((Sensor.name == js_data["sensor"]) | (Sensor.serial == js_data["sensor"])):
+            if Sensor.get_or_none(Sensor.serial == js_data["sensor"]):
                 return json.jsonify({"msg": "Sensor already exists; try using PUT"}), 409
             x = Sensor(serial=js_data["serial"],
                        name=js_data["name"],
@@ -84,7 +84,7 @@ def sensors(sensor=None):
     elif request.method == "GET":
         if sensor:
             with peewee_db.atomic():
-                query = Sensor.get_or_none(Sensor.name == sensor)
+                query = Sensor.get_or_none((Sensor.name == sensor) | (Sensor.serial == sensor))
                 if query:
                     return json.jsonify({"serial": query.serial,
                                          "name": query.name})
@@ -98,7 +98,7 @@ def sensors(sensor=None):
         if sensor:
             js_data = request.get_json()
             with peewee_db.atomic():
-                x = Sensor.get_or_none(Sensor.name == js_data["name"])
+                x = Sensor.get_or_none(Sensor.serial == js_data["serial"])
             if x:
                 x.serial = js_data["serial"]
                 x.name = js_data["name"]
