@@ -92,7 +92,7 @@ def sensors(sensor=None):
                     return json.jsonify({"msg": "Sensor does not exist."}), 404
         else:
             with peewee_db.atomic():
-                d = [{"serial": s.serial, "name": s.name} for s in Sensor.select().order_by(Sensor.id.desc()).limit(100)]
+                d = [{"id": s.id, "serial": s.serial, "name": s.name} for s in Sensor.select().limit(100)]
             return json.jsonify(d)
     elif request.method == "PUT":
         if sensor:
